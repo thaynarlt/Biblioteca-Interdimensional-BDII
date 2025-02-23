@@ -499,29 +499,48 @@ VALUES
    '6677889900QRST5',
    (SELECT id_localizacao FROM LOCALIZACAO WHERE nome = 'Ilha do Trovão'));
 
+INSERT INTO REGISTRO (id_registro, data, idcriatura, classe_criatura, cum_magizoologista, id_localizacao) 
+VALUES 
+    -- Dragão registrado várias vezes em "Abaixo do Castelo de Ironpeak" (id_localizacao = 1)
+    (9, '2024-02-20', 35, 'Animais Místicos', '1234567890ABCD1', 1),
+    (10, '2024-02-21', 35, 'Animais Místicos', '1234567890ABCD1', 1),
 
--- -----------------------------------------------------
--- 1 consulta com uma tabela usando operadores básicos de filtro (e.g., IN,
---between, is null, etc).
--- -----------------------------------------------------
+    -- Beholder registrado mais vezes em "Além da Costa do Mar Ocidental" (id_localizacao = 6)
+    (11, '2023-12-15', 8, 'Seres Monstruosos', '6677889900QRST5', 6),
+    (12, '2023-12-16', 8, 'Seres Monstruosos', '6677889900QRST5', 6),
+    (13, '2023-12-17', 8, 'Seres Monstruosos', '6677889900QRST5', 6),
 
---Justificativa: Esta consulta usa o operador IN para filtrar criaturas que 
---têm o poder 'Fogo', mostrando suas informações.
+    -- Dementador registrado mais vezes "Entre o Reino de Mont e as Colinas de Ilwind" (id_localizacao = 5)
+    (14, '2022-11-01', 27, 'Seres Sobrenaturais', '0987654321EFGH2', 5),
+    (15, '2022-11-05', 27, 'Seres Sobrenaturais', '0987654321EFGH2', 5),
+    
+    -- Hipogrifo registrado mais vezes em "Perto do Reino de Eldoria" (id_localizacao = 7)
+    (16, '2020-06-30', 24, 'Seres Híbridos', '6677889900QRST5', 7),
+    (17, '2020-07-01', 24, 'Seres Híbridos', '6677889900QRST5', 7),
+    (18, '2020-07-02', 24, 'Seres Híbridos', '6677889900QRST5', 7),
 
-SELECT nome, descricao
+    -- Dragão também sendo registrado mais vezes na mesma região de Eldoria (id_localizacao = 7)
+    (19, '2024-01-10', 35, 'Animais Místicos', '5566778899MNOP4', 7),
+    (20, '2024-01-11', 35, 'Animais Místicos', '5566778899MNOP4', 7),
+    (21, '2024-01-12', 35, 'Animais Místicos', '5566778899MNOP4', 7);
+
+
+
+---------------------------------------------------------------------------------------------------------------
+-- 1 consulta com uma tabela usando operadores básicos de filtro (e.g., IN, between, is null, etc).
+
+SELECT nome, descricao, classe
 FROM CRIATURA
 WHERE idcriatura IN (
   SELECT idcriatura
   FROM CRIATURA_TEM_PODER
-  WHERE poder = 'Lançar Feitiços'
+  WHERE poder = 'Cuspir Fogo'
 );
 
--- -----------------------------------------------------
---3 consultas com inner JOIN na cláusula FROM (pode ser self join, caso o
---domínio indique esse uso).
--- -----------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+--3 consultas com inner JOIN na cláusula FROM (pode ser self join, caso o domínio indique esse uso).
 
---Justificativa: fornecer um panorama completo dos registros de criaturas no banco de dados.
+--Justificativa consulta 1: Fornecer um panorama completo dos registros de criaturas feitos pela magizoologista Fiona Moonbreeze
 SELECT
     r.id_registro,
     r.data,
@@ -533,22 +552,30 @@ FROM
     REGISTRO r
     INNER JOIN CRIATURA c ON r.idcriatura = c.idcriatura AND r.classe_criatura = c.classe
     INNER JOIN MAGIZOOLOGISTA m ON r.cum_magizoologista = m.cum
-    INNER JOIN LOCALIZACAO l ON r.id_localizacao = l.id_localizacao;
+    INNER JOIN LOCALIZACAO l ON r.id_localizacao = l.id_localizacao
+WHERE
+    m.nome = 'Fiona Moonbreeze';
 
 
---Justificativa: Listar todos os poderes de uma criatura e suas descrições, incluindo o nome da criatura.
-SELECT cr.nome AS nome_criatura, p.nome AS nome_poder, p.descricao
-FROM CRIATURA cr
-INNER JOIN CRIATURA_TEM_PODER ctp ON cr.idcriatura = ctp.idcriatura
-INNER JOIN PODER p ON ctp.poder = p.nome;
+--Justificativa consulta 2: Listar todas as criaturas, conjutamente com sua classe, descricao da classe, o poder da criatura e a descricao do poder
+SELECT
+    cr.nome AS nome_criatura,
+    cl.nome AS classe_criatura,
+	cl.descricao AS descricao_da_classe,
+    p.nome AS poder_associado,
+    p.descricao AS descricao_do_poder
+FROM
+    CRIATURA cr
+    INNER JOIN CLASSE cl ON cr.classe = cl.nome
+    INNER JOIN CRIATURA_TEM_PODER ctp ON cr.idcriatura = ctp.idcriatura
+    INNER JOIN PODER p ON ctp.poder = p.nome;
 
 
---Justificativa:Fornece uma visão detalhada sobre quais poderes estão associados a 
---quais criaturas, bem como o nível de perigo de cada poder.
+--Justificativa consulta 3: Fornece uma visão detalhada sobre quais poderes estão associados a quais criaturas, bem como o nível de perigo de cada poder.
 SELECT
     c.nome AS nome_criatura,
     c.descricao AS descricao_criatura,
-    p.nome AS poder,
+    p.nome AS poder_da_criatura,
     p.descricao AS descricao_poder,
     n.nome AS nivel_perigo
 FROM
@@ -557,9 +584,8 @@ FROM
     INNER JOIN PODER p ON ct.poder = p.nome
     INNER JOIN nivel_perigo n ON p.nivel_perigo_nome = n.nome;
 
--- -----------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
 --1 consulta com left/right/full outer join na cláusula FROM
--- -----------------------------------------------------
 
 --Justificativa: Suponha que você deseja listar todas as criaturas, incluindo seus 
 --poderes associados, se existirem. Se uma criatura não tiver nenhum poder associado, 
@@ -573,9 +599,9 @@ FROM
     CRIATURA c
     LEFT JOIN CRIATURA_TEM_PODER ct ON c.idcriatura = ct.idcriatura AND c.classe = ct.classe_criatura
     LEFT JOIN PODER p ON ct.poder = p.nome;
--- -----------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
 --2 consultas usando Group By (e possivelmente o having)
--- -----------------------------------------------------
 
 --1. Justificativa: Mostra o número de criaturas em cada classe
 SELECT
@@ -586,30 +612,31 @@ FROM
 GROUP BY
     c.classe;
 
---2. Justificativa: Mostra o número de criaturas que cada poder é possuído
+--2. Justificativa: Mostra o número de criaturas com mais de um poder
+SELECT 
+    cr.nome AS nome_criatura,
+    COUNT(ctp.poder) AS quantidade_poderes
+FROM 
+    CRIATURA cr
+    INNER JOIN CRIATURA_TEM_PODER ctp ON cr.idcriatura = ctp.idcriatura
+GROUP BY 
+    cr.nome
+HAVING 
+    COUNT(ctp.poder) > 1;
+
+---------------------------------------------------------------------------------------------------------------
+--1 consulta usando alguma operação de conjunto (union, except ou intersect)
+
+-- Justificativa: fornece uma lista das criaturas com poderes classificados como de alto nível de perigo,
+-- mas sem os poderes classificados como médio.
 SELECT
     p.nome AS nome_poder,
-    COUNT(ct.idcriatura) AS quantidade_criaturas
+    cr.nome AS nome_criatura,
+    n.nome AS nivel_perigo_poder
 FROM
     PODER p
-    INNER JOIN CRIATURA_TEM_PODER ct ON p.nome = ct.poder
-GROUP BY
-    p.nome
-HAVING
-    COUNT(ct.idcriatura) > 0;
-
--- -----------------------------------------------------
---1 consulta usando alguma operação de conjunto (union, except ou intersect)
--- -----------------------------------------------------
---Justificativa: fornece uma lista das criaturas (com ID e nome) que têm pelo menos um poder 
---classificado como "alto", excluindo aquelas que não têm nenhum poder de nível "alto".
-SELECT
-    c.idcriatura,
-    c.nome
-FROM
-    CRIATURA c
-    INNER JOIN CRIATURA_TEM_PODER ct ON c.idcriatura = ct.idcriatura AND c.classe = ct.classe_criatura
-    INNER JOIN PODER p ON ct.poder = p.nome
+    INNER JOIN CRIATURA_TEM_PODER ctp ON p.nome = ctp.poder
+    INNER JOIN CRIATURA cr ON ctp.idcriatura = cr.idcriatura
     INNER JOIN nivel_perigo n ON p.nivel_perigo_nome = n.nome
 WHERE
     n.nome = 'alto'
@@ -617,19 +644,20 @@ WHERE
 EXCEPT
 
 SELECT
-    c.idcriatura,
-    c.nome
+    p.nome AS nome_poder,
+    cr.nome AS nome_criatura,
+    n.nome AS nivel_perigo_poder
 FROM
-    CRIATURA c
-    INNER JOIN CRIATURA_TEM_PODER ct ON c.idcriatura = ct.idcriatura AND c.classe = ct.classe_criatura
-    LEFT JOIN PODER p ON ct.poder = p.nome
-    LEFT JOIN nivel_perigo n ON p.nivel_perigo_nome = n.nome
+    PODER p
+    INNER JOIN CRIATURA_TEM_PODER ctp ON p.nome = ctp.poder
+    INNER JOIN CRIATURA cr ON ctp.idcriatura = cr.idcriatura
+    INNER JOIN nivel_perigo n ON p.nivel_perigo_nome = n.nome
 WHERE
-    n.nome IS DISTINCT FROM 'alto';
+    n.nome = 'medio';
+---------------------------------------------------------------------------------------------------------------
 
--- -----------------------------------------------------
 --2 consultas que usem subqueries.
--- -----------------------------------------------------
+
 --1. Justificativa: encontra os magizoologistas que têm registrado a captura de criaturas em localizações específicas, como "Floresta Proibida"
 
 SELECT
@@ -648,10 +676,10 @@ WHERE
             l.nome IN ('Floresta Proibida')
     );
 
---2. Justificativa: Consulta principal para encontrar as criaturas com o maior número de poderes
-SELECT
-    c.idcriatura,
-    c.nome,
+--2. Justificativa: 
+-- A consulta encontra as criaturas que possuem o maior número de poderes em relação a todas as criaturas registradas no banco de dados.
+-- Utiliza uma subconsulta para calcular o máximo de poderes e filtra as criaturas que possuem esse número máximo.
+SELECT c.idcriatura, c.nome,
     COUNT(ct.poder) AS total_poderes
 FROM
     CRIATURA c
@@ -660,23 +688,23 @@ GROUP BY
     c.idcriatura, c.nome
 HAVING
     COUNT(ct.poder) = (
-        -- Subconsulta para encontrar o maior número de poderes de qualquer criatura
+        -- Subconsulta para encontrar o número máximo de poderes atribuídos a qualquer criatura
         SELECT
             MAX(poder_count)
         FROM (
-            SELECT
-                c.idcriatura,
+            SELECT c.idcriatura,
                 COUNT(ct.poder) AS poder_count
             FROM
                 CRIATURA c
                 INNER JOIN CRIATURA_TEM_PODER ct ON c.idcriatura = ct.idcriatura AND c.classe = ct.classe_criatura
-            GROUP BY
-                c.idcriatura
+            GROUP BY c.idcriatura
         ) AS subquery
     );
--- -----------------------------------------------------
+
+
+---------------------------------------------------------------------------------------------------------------
+
 -- VIEW QUE PERMITE INSERÇÃO
--- -----------------------------------------------------
 CREATE OR REPLACE VIEW visao_insercao_criatura AS
 SELECT idcriatura, nome, classe
 FROM CRIATURA
@@ -684,15 +712,13 @@ WITH CHECK OPTION; -- Inserção de dados
 
 -- Testanto inserção de dados de uma nova criatura
 INSERT INTO visao_insercao_criatura (idcriatura, nome, classe)
-VALUES (47, 'Formiga', 'Seres Monstruosos');
+VALUES (47, 'Ogro', 'Seres Monstruosos');
 
 -- Testando view
 SELECT * FROM visao_insercao_criatura;
+---------------------------------------------------------------------------------------------------------------
 
-
--- -----------------------------------------------------
 -- VIEW ROBUSTA 1
--- -----------------------------------------------------
 CREATE OR REPLACE VIEW view_dos_cacadores AS
 SELECT 
   cdr.cacador_cum,
@@ -717,61 +743,57 @@ JOIN
 SELECT * FROM view_dos_cacadores;
 
 
--- -----------------------------------------------------
 -- VIEW ROBUSTA 2
--- -----------------------------------------------------
-
-CREATE OR REPLACE VIEW total_capturas_cacador AS
+CREATE OR REPLACE VIEW visao_criaturas_por_regiao_magizoologista AS
 SELECT 
-    MAGIZOOLOGISTA.nome AS "nome do cacador",
-    CACADOR_DE_RECOMPENSA.cacador_cum AS cum,
-    SUM(CAPTURA.quantidade_capturada) AS "total de criaturas capturadas"
+    l.regiao AS regiao_localizacao,
+    c.idcriatura,
+    c.nome AS nome_criatura,
+    m.nome AS nome_magizoologista,
+    COUNT(r.id_registro) AS total_registros
 FROM 
-    CACADOR_DE_RECOMPENSA
-JOIN 
-    MAGIZOOLOGISTA ON CACADOR_DE_RECOMPENSA.cacador_cum = MAGIZOOLOGISTA.cum
-JOIN 
-    CAPTURA ON CACADOR_DE_RECOMPENSA.cacador_cum = CAPTURA.cacador_cum
+    CRIATURA c
+INNER JOIN 
+    REGISTRO r ON c.idcriatura = r.idcriatura
+INNER JOIN 
+    LOCALIZACAO l ON r.id_localizacao = l.id_localizacao
+INNER JOIN 
+    MAGIZOOLOGISTA m ON r.cum_magizoologista = m.cum
 GROUP BY 
-    MAGIZOOLOGISTA.nome, CACADOR_DE_RECOMPENSA.cacador_cum;
-
-SELECT * FROM total_capturas_cacador;
+    l.regiao, c.idcriatura, c.nome, m.nome
+ORDER BY 
+    total_registros DESC, regiao_localizacao;
 
 --Chamada da view:
-SELECT * FROM total_capturas_cacador;
+SELECT * FROM visao_criaturas_por_regiao_magizoologista;
 
--- -----------------------------------------------------
--- ÍNDICES
--- -----------------------------------------------------
-
--- -----------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
 -- ÍNDICE 1
--- -----------------------------------------------------
-CREATE INDEX idx_criatura_nome ON CRIATURA(nome); -- banco de dados localize rapidamente as linhas onde nome = 'Dragão' sem precisar varrer toda a tabela.
+CREATE INDEX idx_criatura_nome ON CRIATURA(nome);
+-- banco de dados localiza rapidamente as linhas onde nome = 'Dragão' sem precisar varrer toda a tabela.
 
--- -----------------------------------------------------
+
 -- ÍNDICE 2
--- -----------------------------------------------------
-CREATE INDEX idx_magizoologista_cum ON MAGIZOOLOGISTA(cum); -- consultas na tabela MAGIZOOLOGISTA que façam filtros ou junções na coluna cum, agilizando essas operações.
+CREATE INDEX idx_magizoologista_cum ON MAGIZOOLOGISTA(cum);
+-- consultas na tabela MAGIZOOLOGISTA que façam filtros ou junções na coluna cum, agilizando essas operações.
 
--- -----------------------------------------------------
+
 -- ÍNDICE 3
--- -----------------------------------------------------
-CREATE INDEX idx_poder_nome ON PODER(nome); --melhoraria o desempenho de consultas que filtrem ou façam junção usando a coluna nome na tabela PODER.
+CREATE INDEX idx_poder_nome ON PODER(nome);
+--melhoraria o desempenho de consultas que filtrem ou façam junção usando a coluna nome na tabela PODER.
 
-
--- -----------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
 -- REESCRITA DE CONSULTAS
--- -----------------------------------------------------
 
--- CONSULTA 1:ORIGINAL
+-- CONSULTA 1: ORIGINAL
 SELECT
-    c.idcriatura,
-    c.nome
+    p.nome AS nome_poder,
+    cr.nome AS nome_criatura,
+    n.nome AS nivel_perigo_poder
 FROM
-    CRIATURA c
-    INNER JOIN CRIATURA_TEM_PODER ct ON c.idcriatura = ct.idcriatura AND c.classe = ct.classe_criatura
-    INNER JOIN PODER p ON ct.poder = p.nome
+    PODER p
+    INNER JOIN CRIATURA_TEM_PODER ctp ON p.nome = ctp.poder
+    INNER JOIN CRIATURA cr ON ctp.idcriatura = cr.idcriatura
     INNER JOIN nivel_perigo n ON p.nivel_perigo_nome = n.nome
 WHERE
     n.nome = 'alto'
@@ -779,132 +801,144 @@ WHERE
 EXCEPT
 
 SELECT
-    c.idcriatura,
-    c.nome
+    p.nome AS nome_poder,
+    cr.nome AS nome_criatura,
+    n.nome AS nivel_perigo_poder
 FROM
-    CRIATURA c
-    INNER JOIN CRIATURA_TEM_PODER ct ON c.idcriatura = ct.idcriatura AND c.classe = ct.classe_criatura
-    LEFT JOIN PODER p ON ct.poder = p.nome
-    LEFT JOIN nivel_perigo n ON p.nivel_perigo_nome = n.nome
+    PODER p
+    INNER JOIN CRIATURA_TEM_PODER ctp ON p.nome = ctp.poder
+    INNER JOIN CRIATURA cr ON ctp.idcriatura = cr.idcriatura
+    INNER JOIN nivel_perigo n ON p.nivel_perigo_nome = n.nome
 WHERE
-    n.nome IS DISTINCT FROM 'alto';
+    n.nome = 'medio';
 
-
--- CONSULTA 1:OTIMIZADA
-SELECT DISTINCT
-    c.idcriatura,
-    c.nome
+-- CONSULTA 1: OTIMIZADA
+SELECT
+    p.nome AS nome_poder,
+    cr.nome AS nome_criatura,
+    n.nome AS nivel_perigo_poder
 FROM
-    CRIATURA c
+    PODER p
+    INNER JOIN CRIATURA_TEM_PODER ctp ON p.nome = ctp.poder
+    INNER JOIN CRIATURA cr ON ctp.idcriatura = cr.idcriatura
+    INNER JOIN nivel_perigo n ON p.nivel_perigo_nome = n.nome
 WHERE
-    EXISTS (
+    n.nome = 'alto'
+    AND NOT EXISTS (
         SELECT 1
-        FROM CRIATURA_TEM_PODER ctp
-        JOIN PODER p ON ctp.poder = p.nome
-        JOIN nivel_perigo np ON p.nivel_perigo_nome = np.nome
-        WHERE c.idcriatura = ctp.idcriatura
-          AND c.classe = ctp.classe_criatura
-          AND np.nome = 'medio'
+        FROM PODER p2
+        INNER JOIN CRIATURA_TEM_PODER ctp2 ON p2.nome = ctp2.poder
+        INNER JOIN nivel_perigo n2 ON p2.nivel_perigo_nome = n2.nome
+        WHERE n2.nome = 'medio'
+        AND p2.nome = p.nome
+        AND cr.nome = cr.nome
     );
 
 
---A versão otimizada usa uma subconsulta com EXISTS para verificar diretamente a presença de poderes de nível "alto", o que pode ser mais eficiente do que usar EXCEPT.
-
 -- CONSULTA 2:ORIGINAL
--- Mostra o número de criaturas em cada classe
-SELECT
-    c.classe AS nome_classe,
-    COUNT(c.idcriatura) AS quantidade_criaturas
+SELECT c.idcriatura, c.nome,
+    COUNT(ct.poder) AS total_poderes
 FROM
     CRIATURA c
+    INNER JOIN CRIATURA_TEM_PODER ct ON c.idcriatura = ct.idcriatura AND c.classe = ct.classe_criatura
 GROUP BY
-    c.classe;
+    c.idcriatura, c.nome
+HAVING
+    COUNT(ct.poder) = (
+        -- Subconsulta para encontrar o maior número de poderes de qualquer criatura
+        SELECT
+            MAX(poder_count)
+        FROM (
+            SELECT c.idcriatura,
+                COUNT(ct.poder) AS poder_count
+            FROM
+                CRIATURA c
+                INNER JOIN CRIATURA_TEM_PODER ct ON c.idcriatura = ct.idcriatura AND c.classe = ct.classe_criatura
+            GROUP BY c.idcriatura
+        ) AS subquery
+    );
 
 
 -- CONSULTA 2:OTIMIZADA
--- Otimização para listar o número de criaturas por classe
-SELECT
-    classe,
-    COUNT(*) AS total_criaturas
-FROM
-    CRIATURA
-GROUP BY
-    classe;
-
---Como estamos lidando com apenas 1 tabela, não precisamos usar o alias e count(*) é mais direto no contexto.
-
-
--- -----------------------------------------------------
+SELECT c.idcriatura, c.nome, COUNT(ct.poder) AS total_poderes
+FROM CRIATURA c
+INNER JOIN CRIATURA_TEM_PODER ct 
+    ON c.idcriatura = ct.idcriatura 
+    AND c.classe = ct.classe_criatura
+GROUP BY c.idcriatura, c.nome
+HAVING COUNT(ct.poder) = (
+    SELECT COUNT(ct2.poder) 
+    FROM CRIATURA_TEM_PODER ct2
+    GROUP BY ct2.idcriatura
+    ORDER BY COUNT(ct2.poder) DESC
+    LIMIT 1
+);
+---------------------------------------------------------------------------------------------------------------
 -- FUNÇÃO
--- -----------------------------------------------------
-
 -- 1 função que use SUM, MAX, MIN, AVG ou COUNT
-CREATE FUNCTION contar_criaturas() RETURNS INT AS $$
+CREATE FUNCTION contar_criaturas_por_poder(poder_nome TEXT) RETURNS INT AS $$
+DECLARE 
+    total INT;
 BEGIN
-   RETURN (SELECT COUNT(*) FROM CRIATURA); -- COUNT
+    SELECT COUNT(DISTINCT c.idcriatura) 
+    INTO total
+    FROM CRIATURA c
+    INNER JOIN CRIATURA_TEM_PODER ctp ON c.idcriatura = ctp.idcriatura
+    WHERE ctp.poder = poder_nome;
+
+    RETURN total;
 END;
 $$ LANGUAGE plpgsql;
-SELECT contar_criaturas();
+
+--Chamada da função:
+SELECT contar_criaturas_por_poder('Teletransporte');
 
 
--- 2 Função para Verificar nivel de perigo de um poder
+-- Outras 2 funções com justificativa semântica, conforme os requisitos da aplicação
+-- Função para Verificar nivel de perigo de um poder
 CREATE FUNCTION verificar_perigo_poder(nome_poder VARCHAR) RETURNS VARCHAR AS $$
 BEGIN
    RETURN (SELECT nivel_perigo_nome FROM PODER WHERE nome = nome_poder);
 END;
 $$ LANGUAGE plpgsql;
+
+--Chamada da função:
 SELECT verificar_perigo_poder('Cuspir Fogo');
 
 
--- 3 Função Mostrar caçadores através de criatura 
+-- Função Mostrar caçadores através de criatura 
 CREATE OR REPLACE FUNCTION get_cacadores_por_criatura(nome_criatura VARCHAR)
 RETURNS TABLE (
   nome_cacador VARCHAR,
   especialidade VARCHAR,
   equipamentos VARCHAR
 ) AS $$
-DECLARE
-  cacador_cursor CURSOR FOR
-    SELECT 
+BEGIN
+  RETURN QUERY 
+  SELECT 
       m.nome AS nome_cacador,
       cdr.especialidade,
       cdr.equipamentos
-    FROM 
+  FROM 
       CACADOR_DE_RECOMPENSA cdr
-    JOIN 
+  JOIN 
       MAGIZOOLOGISTA m ON cdr.cacador_cum = m.cum
-    JOIN 
+  JOIN 
       CAPTURA ca ON cdr.cacador_cum = ca.cacador_cum
-    JOIN 
+  JOIN 
       CRIATURA cr ON ca.idcriatura = cr.idcriatura
-    WHERE 
+  WHERE 
       cr.nome = nome_criatura;
-  rec RECORD;
-BEGIN
-  RAISE NOTICE 'Caçadores de %:', nome_criatura;
 
-  OPEN cacador_cursor;
-  LOOP
-    FETCH cacador_cursor INTO rec;
-    EXIT WHEN NOT FOUND;
-
-    RAISE NOTICE 'Nome do Caçador: %', rec.nome_cacador;
-
-    RETURN QUERY 
-    SELECT rec.nome_cacador, rec.especialidade, rec.equipamentos;
-  END LOOP;
-
-  CLOSE cacador_cursor;
+  RAISE NOTICE 'Caçadores de % listados com sucesso.', nome_criatura;
 END;
 $$ LANGUAGE plpgsql;
-
 
 --Chamada da função:
 SELECT * FROM get_cacadores_por_criatura('Dragão');
 
--- -----------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
 -- PROCEDURE
--- -----------------------------------------------------
 --Atualiza o nivel de um guardião, com tratamento para ver se o CUM dado existe e se o novo nível é válido.
 CREATE OR REPLACE PROCEDURE AtualizarNivelGuardiao(
     p_guardiao_cum VARCHAR(15),
@@ -935,14 +969,16 @@ EXCEPTION
 END $$;
 
 
---teste da procedure
+--Teste da procedure SEM ERRO
 CALL AtualizarNivelGuardiao('1234567890ABCD1', 7);
 SELECT * FROM guardiao;
 
--- -----------------------------------------------------
--- TRIGGER 1
--- -----------------------------------------------------
+--Teste da procedure COM ERRO
+CALL AtualizarNivelGuardiao('2358967890ABCD1', 9);
+-- Mensagem: NOTA:  Erro ao atualizar o nível de proteção: Guardião com CUM 2358967890ABCD1 não encontrado.
 
+---------------------------------------------------------------------------------------------------------------
+-- TRIGGER 1
 CREATE TABLE HISTORICO_CAPTURA (
   id SERIAL PRIMARY KEY,
   cacador_cum VARCHAR(15) NOT NULL,
@@ -977,27 +1013,22 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
 CREATE TRIGGER trg_log_captura_update
 AFTER UPDATE ON CAPTURA
 FOR EACH ROW
 EXECUTE FUNCTION log_captura_update();
+
 
 -- Atualizar o registro na tabela CAPTURA
 UPDATE CAPTURA
 SET quantidade_capturada = 11
 WHERE cacador_cum = '7766554433UVWX6' AND idcriatura = (SELECT idcriatura FROM criatura WHERE nome = 'Dragão');
 
-
-
 -- Consultar a tabela HISTORICO_CAPTURA para verificar o histórico de alterações
 SELECT * FROM HISTORICO_CAPTURA;
 
 
--- -----------------------------------------------------
 -- TRIGGER 2
--- -----------------------------------------------------
-
 CREATE OR REPLACE FUNCTION verificaQuantidadeCapturada()
 RETURNS trigger AS $$
 BEGIN
@@ -1026,9 +1057,8 @@ VALUES (3, '7766554433UVWX6', 1, 'Seres Monstruosos');
 -- Verificar se as capturas foram inseridas corretamente
 SELECT * FROM captura;
 
--- -----------------------------------------------------
+
 -- TRIGGER 3
--- -----------------------------------------------------
 CREATE OR REPLACE FUNCTION verificaDataNascimento()
 RETURNS trigger AS $$
 BEGIN
@@ -1057,3 +1087,38 @@ VALUES ('DEF456', 'Novo Magizoologista', '1990-05-23');
 -- Verificar se os magizoologistas foram inseridos corretamente
 SELECT * FROM magizoologista;
 
+---------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION verificar_cum_duplicado()
+RETURNS trigger AS $$
+DECLARE
+    nome_magizoologista VARCHAR;
+BEGIN
+    -- Verifica se o 'cum' do magizoologista já existe na tabela
+    SELECT nome INTO nome_magizoologista
+    FROM MAGIZOOLOGISTA
+    WHERE cum = NEW.cum
+    LIMIT 1;
+
+    -- Se o 'cum' já existir, gera um erro com o nome do magizoologista
+    IF nome_magizoologista IS NOT NULL THEN
+        RAISE EXCEPTION 'O cum % já está registrado para o magizoologista %.', NEW.cum, nome_magizoologista;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_verifica_cum_duplicado
+BEFORE INSERT ON MAGIZOOLOGISTA
+FOR EACH ROW
+EXECUTE FUNCTION verificar_cum_duplicado();
+
+-- Supondo que o cum '9988776655CDEF8' já esteja registrado:
+INSERT INTO MAGIZOOLOGISTA (cum, nome, data_nasc)
+VALUES ('9988776655CDEF8', 'Albert', '1990-01-01');
+
+-- Tentando inserir um magizoologista com cum único:
+INSERT INTO MAGIZOOLOGISTA (cum, nome, data_nasc)
+VALUES ('5533445566KLFN1', 'Cassandra Clair', '1985-05-20');
+
+select * from magizoologista;
