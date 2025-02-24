@@ -1045,17 +1045,29 @@ SELECT * FROM CAPTURA;
 
 -- TRIGGER 2
 CREATE OR REPLACE FUNCTION verificaQuantidadeCapturada()
-RETURNS trigger AS $$
+RETURNS TRIGGER AS $$
+DECLARE
+    existe_magizoologista INT;
 BEGIN
-    -- Garante que a quantidade capturada seja maior que zero
+    -- Verifica se a quantidade capturada é válida
     IF NEW.quantidade_capturada <= 0 THEN
         RAISE EXCEPTION 'A quantidade capturada deve ser maior que zero';
+    END IF;
+
+    -- Verifica se o caçador (cacador_cum) existe na tabela MAGIZOOLOGISTA
+    SELECT COUNT(*) INTO existe_magizoologista 
+    FROM MAGIZOOLOGISTA 
+    WHERE cum = NEW.cacador_cum;
+
+    IF existe_magizoologista = 0 THEN
+        RAISE EXCEPTION 'O caçador com cum % não existe', NEW.cacador_cum;
     END IF;
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
+-- Criando o trigger para verificar as inserções e atualizações na tabela captura
 CREATE TRIGGER triggerVerificaCaptura
 BEFORE INSERT OR UPDATE ON captura
 FOR EACH ROW
@@ -1063,11 +1075,11 @@ EXECUTE FUNCTION verificaQuantidadeCapturada();
 
 -- Tentando inserir uma captura com quantidade inválida
 INSERT INTO captura (quantidade_capturada, cacador_cum, idcriatura, classe_criatura)
-VALUES (-1, 'ABC123', 1, 'Dragão');
+VALUES (-1, '2877665544GHIJ9', 1, 'Dragão');
 
 -- Tentando inserir uma captura válida
 INSERT INTO captura (quantidade_capturada, cacador_cum, idcriatura, classe_criatura)
-VALUES (3, '7766554433UVWX6', 1, 'Seres Monstruosos');
+VALUES (7, '3344556677YZAB7', 23, 'Seres Híbridos');
 
 -- Verificar se as capturas foram inseridas corretamente
 SELECT * FROM captura;
@@ -1108,4 +1120,6 @@ INSERT INTO MAGIZOOLOGISTA (cum, nome, data_nasc)
 VALUES ('5533445566KLFN1', 'Cassandra Clair', '1985-05-20');
 
 select * from magizoologista;
+
 ---------------------------------------------------------------------------------------------------------------
+
