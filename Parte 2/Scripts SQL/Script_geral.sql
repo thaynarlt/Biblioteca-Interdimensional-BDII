@@ -737,10 +737,13 @@ JOIN
 JOIN 
   CAPTURA ca ON cdr.cacador_cum = ca.cacador_cum
 JOIN 
-  CRIATURA cr ON ca.idcriatura = cr.idcriatura;
+  CRIATURA cr ON ca.idcriatura = cr.idcriatura
+ORDER BY
+	quantidade_capturada DESC;
 
 --Chamada da view:
 SELECT * FROM view_dos_cacadores;
+
 
 
 -- VIEW ROBUSTA 2
@@ -909,16 +912,20 @@ SELECT verificar_perigo_poder('Cuspir Fogo');
 -- Função Mostrar caçadores através de criatura 
 CREATE OR REPLACE FUNCTION get_cacadores_por_criatura(nome_criatura VARCHAR)
 RETURNS TABLE (
+  nome_cacador VARCHAR,CREATE OR REPLACE FUNCTION get_cacadores_por_criatura(nome_criatura VARCHAR)
+RETURNS TABLE (
   nome_cacador VARCHAR,
   especialidade VARCHAR,
-  equipamentos VARCHAR
+  equipamentos VARCHAR,
+  quantidade_capturada INT
 ) AS $$
 BEGIN
   RETURN QUERY 
   SELECT 
       m.nome AS nome_cacador,
       cdr.especialidade,
-      cdr.equipamentos
+      cdr.equipamentos,
+	  ca.quantidade_capturada
   FROM 
       CACADOR_DE_RECOMPENSA cdr
   JOIN 
@@ -928,7 +935,39 @@ BEGIN
   JOIN 
       CRIATURA cr ON ca.idcriatura = cr.idcriatura
   WHERE 
-      cr.nome = nome_criatura;
+      cr.nome = nome_criatura
+ORDER BY 
+      quantidade_capturada DESC;  -- Ordena do maior para o menor número de capturas
+
+  RAISE NOTICE 'Caçadores de % listados com sucesso.', nome_criatura;
+END;
+$$ LANGUAGE plpgsql;
+
+--Chamada da função:
+SELECT * FROM get_cacadores_por_criatura('Dragão');
+  especialidade VARCHAR,
+  equipamentos VARCHAR,
+  quantidade_capturada INT
+) AS $$
+BEGIN
+  RETURN QUERY 
+  SELECT 
+      m.nome AS nome_cacador,
+      cdr.especialidade,
+      cdr.equipamentos,
+	  ca.quantidade_capturada
+  FROM 
+      CACADOR_DE_RECOMPENSA cdr
+  JOIN 
+      MAGIZOOLOGISTA m ON cdr.cacador_cum = m.cum
+  JOIN 
+      CAPTURA ca ON cdr.cacador_cum = ca.cacador_cum
+  JOIN 
+      CRIATURA cr ON ca.idcriatura = cr.idcriatura
+  WHERE 
+      cr.nome = nome_criatura
+ORDER BY 
+      quantidade_capturada DESC;  -- Ordena do maior para o menor número de capturas
 
   RAISE NOTICE 'Caçadores de % listados com sucesso.', nome_criatura;
 END;
