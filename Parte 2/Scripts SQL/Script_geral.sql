@@ -774,16 +774,19 @@ SELECT * FROM visao_criaturas_por_regiao_magizoologista;
 -- ÍNDICE 1
 CREATE INDEX idx_criatura_nome ON CRIATURA(nome);
 -- banco de dados localiza rapidamente as linhas onde nome = 'Dragão' sem precisar varrer toda a tabela.
+SELECT * FROM CRIATURA WHERE nome = 'Dragão';
 
 
 -- ÍNDICE 2
 CREATE INDEX idx_magizoologista_cum ON MAGIZOOLOGISTA(cum);
 -- consultas na tabela MAGIZOOLOGISTA que façam filtros ou junções na coluna cum, agilizando essas operações.
-
+SELECT * FROM MAGIZOOLOGISTA WHERE cum = '1234567890ABCD1';
 
 -- ÍNDICE 3
 CREATE INDEX idx_poder_nome ON PODER(nome);
 --melhoraria o desempenho de consultas que filtrem ou façam junção usando a coluna nome na tabela PODER.
+SELECT * FROM PODER WHERE nome = 'Teletransporte';
+
 
 ---------------------------------------------------------------------------------------------------------------
 -- REESCRITA DE CONSULTAS
@@ -912,39 +915,7 @@ SELECT verificar_perigo_poder('Cuspir Fogo');
 -- Função Mostrar caçadores através de criatura 
 CREATE OR REPLACE FUNCTION get_cacadores_por_criatura(nome_criatura VARCHAR)
 RETURNS TABLE (
-  nome_cacador VARCHAR,CREATE OR REPLACE FUNCTION get_cacadores_por_criatura(nome_criatura VARCHAR)
-RETURNS TABLE (
   nome_cacador VARCHAR,
-  especialidade VARCHAR,
-  equipamentos VARCHAR,
-  quantidade_capturada INT
-) AS $$
-BEGIN
-  RETURN QUERY 
-  SELECT 
-      m.nome AS nome_cacador,
-      cdr.especialidade,
-      cdr.equipamentos,
-	  ca.quantidade_capturada
-  FROM 
-      CACADOR_DE_RECOMPENSA cdr
-  JOIN 
-      MAGIZOOLOGISTA m ON cdr.cacador_cum = m.cum
-  JOIN 
-      CAPTURA ca ON cdr.cacador_cum = ca.cacador_cum
-  JOIN 
-      CRIATURA cr ON ca.idcriatura = cr.idcriatura
-  WHERE 
-      cr.nome = nome_criatura
-ORDER BY 
-      quantidade_capturada DESC;  -- Ordena do maior para o menor número de capturas
-
-  RAISE NOTICE 'Caçadores de % listados com sucesso.', nome_criatura;
-END;
-$$ LANGUAGE plpgsql;
-
---Chamada da função:
-SELECT * FROM get_cacadores_por_criatura('Dragão');
   especialidade VARCHAR,
   equipamentos VARCHAR,
   quantidade_capturada INT
@@ -1009,7 +980,7 @@ END $$;
 
 
 --Teste da procedure SEM ERRO
-CALL AtualizarNivelGuardiao('1234567890ABCD1', 7);
+CALL AtualizarNivelGuardiao('1234567890ABCD1', 8);
 SELECT * FROM guardiao;
 
 --Teste da procedure COM ERRO
@@ -1063,8 +1034,13 @@ UPDATE CAPTURA
 SET quantidade_capturada = 11
 WHERE cacador_cum = '7766554433UVWX6' AND idcriatura = (SELECT idcriatura FROM criatura WHERE nome = 'Dragão');
 
+UPDATE CAPTURA
+SET quantidade_capturada = 10
+WHERE cacador_cum = '7766554433UVWX6' AND idcriatura = (SELECT idcriatura FROM criatura WHERE nome = 'Dragão');
+
 -- Consultar a tabela HISTORICO_CAPTURA para verificar o histórico de alterações
 SELECT * FROM HISTORICO_CAPTURA;
+SELECT * FROM CAPTURA;
 
 
 -- TRIGGER 2
@@ -1098,35 +1074,6 @@ SELECT * FROM captura;
 
 
 -- TRIGGER 3
-CREATE OR REPLACE FUNCTION verificaDataNascimento()
-RETURNS trigger AS $$
-BEGIN
-    -- Verifica se a data de nascimento é anterior à data atual
-    IF NEW.data_nasc > CURRENT_DATE THEN
-        RAISE EXCEPTION 'A data de nascimento não pode ser uma data futura';
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER triggerVerificaMagizoologista
-BEFORE INSERT OR UPDATE ON magizoologista
-FOR EACH ROW
-EXECUTE FUNCTION verificaDataNascimento();
-
--- Tentando inserir um magizoologista com uma data de nascimento no futuro
-INSERT INTO magizoologista (cum, nome, data_nasc) 
-VALUES ('DEF456', 'Novo Magizoologista', '2025-01-01');
-
--- Tentando inserir um magizoologista com uma data válida
-INSERT INTO magizoologista (cum, nome, data_nasc) 
-VALUES ('DEF456', 'Novo Magizoologista', '1990-05-23');
-
--- Verificar se os magizoologistas foram inseridos corretamente
-SELECT * FROM magizoologista;
-
----------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION verificar_cum_duplicado()
 RETURNS trigger AS $$
 DECLARE
@@ -1161,3 +1108,4 @@ INSERT INTO MAGIZOOLOGISTA (cum, nome, data_nasc)
 VALUES ('5533445566KLFN1', 'Cassandra Clair', '1985-05-20');
 
 select * from magizoologista;
+---------------------------------------------------------------------------------------------------------------
